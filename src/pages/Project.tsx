@@ -72,6 +72,23 @@ const Project = () => {
 
     try {
       await db.points.delete(pointId);
+      
+      // Réorganiser les numéros des points restants
+      const remainingPoints = await db.points
+        .where('projectId')
+        .equals(Number(id))
+        .toArray();
+      
+      // Trier les points par numéro pour maintenir l'ordre
+      const sortedPoints = remainingPoints.sort((a, b) => a.number - b.number);
+      
+      // Mettre à jour les numéros
+      for (let i = 0; i < sortedPoints.length; i++) {
+        await db.points.update(sortedPoints[i].id!, {
+          number: i + 1
+        });
+      }
+
       await queryClient.invalidateQueries({ queryKey: ['points', id] });
       toast.success("Point supprimé avec succès");
     } catch (error) {
