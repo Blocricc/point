@@ -9,6 +9,7 @@ import { ArrowLeft, Camera } from "lucide-react";
 import { db } from "@/lib/db";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
+import { Camera as CapacitorCamera, CameraResultType } from '@capacitor/camera';
 
 const EditPoint = () => {
   const navigate = useNavigate();
@@ -34,23 +35,25 @@ const EditPoint = () => {
 
   const handlePhotoCapture = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      const video = document.createElement('video');
-      video.srcObject = stream;
-      await video.play();
+      // Demander la permission
+      await CapacitorCamera.checkPermissions();
+      
+      const image = await CapacitorCamera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.DataUrl
+      });
 
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext('2d')?.drawImage(video, 0, 0);
-
-      const photoUrl = canvas.toDataURL('image/jpeg');
-      setPhotoUrl(photoUrl);
-
-      stream.getTracks().forEach(track => track.stop());
-    } catch (error) {
-      console.error(error);
-      toast.error("Erreur lors de la capture de la photo");
+      if (image.dataUrl) {
+        setPhotoUrl(image.dataUrl);
+      }
+    } catch (error: any) {
+      console.error('Camera error:', error);
+      if (error.message.includes('denied')) {
+        toast.error("Veuillez autoriser l'accès à l'appareil photo");
+      } else {
+        toast.error("Erreur lors de la capture de la photo. Veuillez réessayer.");
+      }
     }
   };
 
@@ -91,7 +94,7 @@ const EditPoint = () => {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="container px-4 py-8 mx-auto max-w-2xl">
+      <div className="container px-4 pt-12 pb-8 mx-auto max-w-2xl">
         <Button
           variant="ghost"
           className="mb-8"

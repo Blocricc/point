@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft, Plus, Target, Trash2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { db, Point } from "@/lib/db";
+import { db } from "@/lib/db";
 import { PointMarker } from "@/components/PointMarker";
 import { toast } from "sonner";
 
@@ -101,9 +101,9 @@ const Project = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="container px-4 py-8 mx-auto">
-        <div className="flex items-center justify-between mb-8">
+    <div className="min-h-screen bg-white flex flex-col">
+      <div className="container px-4 pt-12 pb-4 mx-auto">
+        <div className="flex items-center justify-between mb-4">
           <Button
             variant="ghost"
             onClick={() => navigate("/")}
@@ -114,86 +114,96 @@ const Project = () => {
           <h1 className="text-2xl font-bold text-secondary">{project.name}</h1>
           <div className="w-[100px]" />
         </div>
+      </div>
 
-        <div className="flex gap-8">
-          <div
-            ref={containerRef}
-            className="relative flex-1 h-[calc(100vh-12rem)] overflow-hidden border rounded-lg bg-gray-50"
-            onWheel={handleWheel}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-          >
-            <img
-              src={project.planUrl}
-              alt="Plan"
-              className="absolute transform origin-top-left cursor-move"
-              style={{
-                transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
-              }}
+      <div className="container px-4 pb-8 mx-auto flex flex-col lg:flex-row gap-8 flex-1">
+        {/* Sur mobile, le plan est au-dessus */}
+        <div
+          ref={containerRef}
+          className="relative flex-1 h-[50vh] lg:h-[calc(100vh-12rem)] overflow-hidden border rounded-lg bg-gray-50"
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onTouchStart={(e) => {
+            const touch = e.touches[0];
+            handleMouseDown({ clientX: touch.clientX, clientY: touch.clientY } as React.MouseEvent);
+          }}
+          onTouchMove={(e) => {
+            const touch = e.touches[0];
+            handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY } as React.MouseEvent);
+          }}
+          onTouchEnd={() => handleMouseUp()}
+        >
+          <img
+            src={project.planUrl}
+            alt="Plan"
+            className="absolute transform origin-top-left cursor-move"
+            style={{
+              transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+            }}
+          />
+          {points.map((point) => (
+            <PointMarker
+              key={point.id}
+              point={point}
+              scale={scale}
+              position={position}
+              onClick={() => navigate(`/project/${project.id}/point/${point.id}`)}
             />
-            {points.map((point) => (
-              <PointMarker
-                key={point.id}
-                point={point}
-                scale={scale}
-                position={position}
-                onClick={() => navigate(`/project/${project.id}/point/${point.id}`)}
-              />
-            ))}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-              <Target className="w-8 h-8 text-primary/50" />
-            </div>
+          ))}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+            <Target className="w-8 h-8 text-primary/50" />
           </div>
+        </div>
 
-          <div className="w-80">
-            <Button
-              onClick={handleAddPoint}
-              className="w-full mb-4 bg-primary hover:bg-primary/90"
-            >
-              <Plus className="mr-2 h-5 w-5" />
-              Ajouter un point
-            </Button>
+        <div className="w-full lg:w-80">
+          <Button
+            onClick={handleAddPoint}
+            className="w-full mb-4 bg-primary hover:bg-primary/90"
+          >
+            <Plus className="mr-2 h-5 w-5" />
+            Ajouter un point
+          </Button>
 
-            <ScrollArea className="h-[calc(100vh-16rem)] rounded-lg border p-4">
-              {points.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  Aucun point. Cliquez sur le plan pour ajouter un point.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {points.map((point) => (
-                    <div key={point.id} className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        className="flex-1 justify-start h-auto py-3"
-                        onClick={() => navigate(`/project/${project.id}/point/${point.id}`)}
-                      >
-                        <div className="mr-3 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0">
-                          {point.number}
+          <ScrollArea className="h-[30vh] lg:h-[calc(100vh-16rem)] rounded-lg border p-4">
+            {points.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                Aucun point. Cliquez sur le plan pour ajouter un point.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {points.map((point) => (
+                  <div key={point.id} className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1 justify-start h-auto py-3"
+                      onClick={() => navigate(`/project/${project.id}/point/${point.id}`)}
+                    >
+                      <div className="mr-3 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0">
+                        {point.number}
+                      </div>
+                      <div className="text-left">
+                        <div className="font-medium">{point.title}</div>
+                        <div className="text-sm text-gray-500 truncate">
+                          {point.description}
                         </div>
-                        <div className="text-left">
-                          <div className="font-medium">{point.title}</div>
-                          <div className="text-sm text-gray-500 truncate">
-                            {point.description}
-                          </div>
-                        </div>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="flex-shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                        onClick={() => point.id && handleDeletePoint(point.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          </div>
+                      </div>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="flex-shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                      onClick={() => point.id && handleDeletePoint(point.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
         </div>
       </div>
     </div>
@@ -201,4 +211,3 @@ const Project = () => {
 };
 
 export default Project;
-
