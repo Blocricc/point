@@ -3,8 +3,8 @@ import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Plus, Target } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, Plus, Target, Trash2 } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { db, Point } from "@/lib/db";
 import { PointMarker } from "@/components/PointMarker";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import { toast } from "sonner";
 const Project = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -56,13 +57,26 @@ const Project = () => {
     if (!containerRef.current || !project?.id) return;
 
     const rect = containerRef.current.getBoundingClientRect();
-    // Calculer les coordonnées du centre de la vue
     const centerX = (rect.width / 2 - position.x) / scale;
     const centerY = (rect.height / 2 - position.y) / scale;
 
     navigate(`/project/${project.id}/point`, {
       state: { x: centerX, y: centerY, pointNumber: points.length + 1 },
     });
+  };
+
+  const handleDeletePoint = async (pointId: number) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce point ?")) {
+      return;
+    }
+
+    try {
+      await db.points.delete(pointId);
+      await queryClient.invalidateQueries({ queryKey: ['points', id] });
+      toast.success("Point supprimé avec succès");
+    } catch (error) {
+      toast.error("Erreur lors de la suppression du point");
+    }
   };
 
   if (!project) {
@@ -111,7 +125,6 @@ const Project = () => {
                 onClick={() => navigate(`/project/${project.id}/point/${point.id}`)}
               />
             ))}
-            {/* Pointeur central fixe */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
               <Target className="w-8 h-8 text-primary/50" />
             </div>
@@ -134,22 +147,31 @@ const Project = () => {
               ) : (
                 <div className="space-y-2">
                   {points.map((point) => (
-                    <Button
-                      key={point.id}
-                      variant="outline"
-                      className="w-full justify-start h-auto py-3"
-                      onClick={() => navigate(`/project/${project.id}/point/${point.id}`)}
-                    >
-                      <div className="mr-3 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0">
-                        {point.number}
-                      </div>
-                      <div className="text-left">
-                        <div className="font-medium">{point.title}</div>
-                        <div className="text-sm text-gray-500 truncate">
-                          {point.description}
+                    <div key={point.id} className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1 justify-start h-auto py-3"
+                        onClick={() => navigate(`/project/${project.id}/point/${point.id}`)}
+                      >
+                        <div className="mr-3 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center flex-shrink-0">
+                          {point.number}
                         </div>
-                      </div>
-                    </Button>
+                        <div className="text-left">
+                          <div className="font-medium">{point.title}</div>
+                          <div className="text-sm text-gray-500 truncate">
+                            {point.description}
+                          </div>
+                        </div>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="flex-shrink-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => point.id && handleDeletePoint(point.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -162,3 +184,4 @@ const Project = () => {
 };
 
 export default Project;
+
