@@ -3,7 +3,7 @@ import { useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft, Plus, Target } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { db, Point } from "@/lib/db";
 import { PointMarker } from "@/components/PointMarker";
@@ -52,15 +52,16 @@ const Project = () => {
     setIsDragging(false);
   };
 
-  const handleAddPoint = (e: React.MouseEvent) => {
+  const handleAddPoint = () => {
     if (!containerRef.current || !project?.id) return;
 
     const rect = containerRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left - position.x) / scale;
-    const y = (e.clientY - rect.top - position.y) / scale;
+    // Calculer les coordonnées du centre de la vue
+    const centerX = (rect.width / 2 - position.x) / scale;
+    const centerY = (rect.height / 2 - position.y) / scale;
 
     navigate(`/project/${project.id}/point`, {
-      state: { x, y, pointNumber: points.length + 1 },
+      state: { x: centerX, y: centerY, pointNumber: points.length + 1 },
     });
   };
 
@@ -80,7 +81,7 @@ const Project = () => {
             Retour
           </Button>
           <h1 className="text-2xl font-bold text-secondary">{project.name}</h1>
-          <div className="w-[100px]" /> {/* Spacer for centering */}
+          <div className="w-[100px]" />
         </div>
 
         <div className="flex gap-8">
@@ -110,6 +111,10 @@ const Project = () => {
                 onClick={() => navigate(`/project/${project.id}/point/${point.id}`)}
               />
             ))}
+            {/* Pointeur central fixe */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+              <Target className="w-8 h-8 text-primary/50" />
+            </div>
           </div>
 
           <div className="w-80">
